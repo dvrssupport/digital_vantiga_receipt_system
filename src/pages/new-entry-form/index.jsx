@@ -11,7 +11,6 @@ import {
   getFinancialYearOptions,
   isValidFinancialYear
 } from '../../utils/financialYear';
-import { formatReceiptNumber } from '../../utils/receiptNumber';
 import { formatAmountInWordsINR } from '../../utils/amount';
 
 // ✅ ADD: Supabase client
@@ -403,45 +402,6 @@ const NewEntryForm = () => {
   ]);
 
   // ✅ FY helper (you can later calculate FY dynamically)
-  const resolveReceiptCode = async () => {
-    if (userProfile?.receiptCode) return userProfile.receiptCode;
-
-    const cachedProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-    if (cachedProfile?.receiptCode) return cachedProfile.receiptCode;
-    if (cachedProfile?.sabhaCode) return cachedProfile.sabhaCode;
-
-    if (!userProfile?.sabhaId) return 'SABHA';
-
-    const { data, error } = await supabase
-      .from('sabhas')
-      .select('receipt_code, code')
-      .eq('id', userProfile.sabhaId)
-      .single();
-
-    if (error) {
-      console.warn('Failed to resolve receipt code for receipt number:', error);
-      return 'SABHA';
-    }
-
-    return data?.receipt_code || data?.code || 'SABHA';
-  };
-
-  const generateReceiptNumberForCashEntry = async (fy) => {
-    const receiptCode = await resolveReceiptCode();
-
-    const { count, error } = await supabase
-      .from('vantiga_entries')
-      .select('id', { count: 'exact', head: true })
-      .eq('sabha_id', userProfile?.sabhaId)
-      .eq('fy', fy)
-      .not('receipt_no', 'is', null);
-
-    if (error) throw error;
-
-    const nextNumber = Number(count || 0) + 1;
-    return formatReceiptNumber(receiptCode, nextNumber);
-  };
-
   const checkForDuplicates = async () => {
     try {
       // NOTE:
@@ -1042,11 +1002,6 @@ const NewEntryForm = () => {
       if (membersErr) throw membersErr;
 
       // 3) Insert VANTIGA ENTRY
-      const receiptNoForEntry =
-        formData?.paidBy === "Cash"
-          ? await generateReceiptNumberForCashEntry(entryFY)
-          : null;
-
       const entryInsert = {
         sabha_id: userProfile?.sabhaId,  // MUST be UUID
         family_id: familyId,             // UUID from families insert
@@ -1055,7 +1010,8 @@ const NewEntryForm = () => {
         status: "SUBMITTED",
         paid_by: formData?.paidBy,
         reference_no: formData?.paidBy === "Cash" ? null : (formData?.referenceNo || null),
-        receipt_no: receiptNoForEntry,
+        // Receipt numbers are assigned only at Treasurer acknowledgement for all payment modes.
+        receipt_no: null,
         submitted_at: new Date().toISOString(),
         submitted_by: sessionData?.session?.user?.id,
         // Optional fields if exist:
