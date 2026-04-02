@@ -71,11 +71,10 @@ export function isSubmissionAckGeneratedFromPayload(
 ): { shouldSend: boolean; entryId: string | null; submittedAt: string | null } {
   const entryId = optionalTrimmed(record?.id);
   const submittedAt = optionalTrimmed(record?.submitted_at);
-  const paidBy = optionalTrimmed(record?.paid_by);
   const status = optionalTrimmed(record?.status);
   const oldSubmittedAt = optionalTrimmed(oldRecord?.submitted_at);
 
-  if (!entryId || !submittedAt || !paidBy || paidBy === "Cash" || status !== "SUBMITTED") {
+  if (!entryId || !submittedAt || status !== "SUBMITTED") {
     return { shouldSend: false, entryId, submittedAt };
   }
 
