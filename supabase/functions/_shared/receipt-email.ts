@@ -1082,7 +1082,7 @@ export async function buildReceiptPdf(payload: ReceiptPayload): Promise<string> 
     drawHighlightedCenterCallout(
       [
         {
-          text: "The Vantiga Payer has confirmed the following preferences for display in the SCM Vantiga Directory:",
+          text: "Vantiga Payer has confirmed preferences for display in the SCM Vantiga Directory:",
           size: 8.6,bold: true
         },
       ],

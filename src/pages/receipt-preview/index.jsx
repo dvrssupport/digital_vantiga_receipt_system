@@ -602,7 +602,7 @@ const ReceiptPreview = ({ standalone = false }) => {
               <div className="flex justify-center mb-3">
                 <div className="text-sm text-center leading-snug">
                   <span className="inline-block bg-yellow-200 border border-yellow-300 px-3 py-1 rounded-md">
-                    The Vantiga Payer has confirmed the following preferences for display in the{' '}
+                    Vantiga Payer has confirmed below preferences for display in{' '}
                     <span className="font-semibold">SCM Vantiga Directory:</span>
                   </span>
                 </div>
