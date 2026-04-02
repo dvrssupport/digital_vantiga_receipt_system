@@ -522,7 +522,7 @@ const ReceiptPreview = ({ standalone = false }) => {
             </div>
 
             <div className="px-6 py-2 border-b border-slate-300 text-center">
-              <div className="inline-block text-sm italic bg-yellow-200 border border-yellow-300 px-3 py-1 rounded-md">
+              <div className="inline-block text-sm italic">
                 Vantiga is a voluntary contribution towards the activities of Shri Chitrapur Math.
               </div>
             </div>
@@ -601,7 +601,7 @@ const ReceiptPreview = ({ standalone = false }) => {
             <div className="border-t border-slate-300 px-6 py-2.5 bg-slate-100">
               <div className="flex justify-center mb-3">
                 <div className="text-sm text-center leading-snug">
-                  <span className="inline-block bg-yellow-200 border border-yellow-300 px-3 py-1 rounded-md">
+                  <span className="inline-block">
                     Vantiga Payer has confirmed below preferences for display in{' '}
                     <span className="font-semibold">SCM Vantiga Directory:</span>
                   </span>

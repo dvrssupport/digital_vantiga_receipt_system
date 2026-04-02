@@ -507,45 +507,6 @@ export async function buildReceiptPdf(payload: ReceiptPayload): Promise<string> 
     });
   };
 
-  const drawHighlightedCenterCallout = (
-    lines: Array<{ text: string; size: number; bold?: boolean }>,
-    topY: number,
-    options?: { gap?: number; paddingX?: number; paddingY?: number },
-  ) => {
-    const gap = options?.gap ?? 5;
-    const paddingX = options?.paddingX ?? 8;
-    const paddingY = options?.paddingY ?? 3;
-    let cursorY = topY;
-
-    lines.forEach((line) => {
-      const font = line.bold ? titleFont : bodyFont;
-      const textWidth = font.widthOfTextAtSize(line.text, line.size);
-      const lineHeight = line.size + paddingY * 2;
-      const rectWidth = textWidth + paddingX * 2;
-      const rectX = left + (contentWidth - rectWidth) / 2;
-      const rectY = cursorY - lineHeight;
-
-      page.drawRectangle({
-        x: rectX,
-        y: rectY,
-        width: rectWidth,
-        height: lineHeight,
-        color: rgb(0.99, 0.93, 0.62),
-        borderColor: rgb(0.92, 0.84, 0.34),
-        borderWidth: 0.8,
-      });
-      drawCenteredText(
-        line.text,
-        left + contentWidth / 2,
-        rectY + paddingY + ((lineHeight - paddingY * 2 - line.size) / 2) + 1,
-        line.size,
-        Boolean(line.bold),
-      );
-
-      cursorY = rectY - gap;
-    });
-  };
-
   const drawWrapped = (
     text: string,
     x: number,
@@ -896,10 +857,12 @@ export async function buildReceiptPdf(payload: ReceiptPayload): Promise<string> 
   if (!isMathMaryada) {
     const topCallout = row(30);
     drawSectionBox(topCallout.top, topCallout.height);
-    drawHighlightedCenterCallout(
-      [{ text: "Vantiga is a voluntary contribution towards the activities of Shri Chitrapur Math.", size: 8.8, bold: true }],
-      topCallout.top - 6,
-      { gap: 0, paddingX: 8, paddingY: 3 },
+    drawCenteredText(
+      "Vantiga is a voluntary contribution towards the activities of Shri Chitrapur Math.",
+      left + contentWidth / 2,
+      topCallout.top - 19,
+      8.8,
+      true,
     );
   }
 
@@ -1079,15 +1042,12 @@ export async function buildReceiptPdf(payload: ReceiptPayload): Promise<string> 
   if (!isMathMaryada) {
     const directory = row(66);
     drawSectionBox(directory.top, directory.height, true);
-    drawHighlightedCenterCallout(
-      [
-        {
-          text: "Vantiga Payer has confirmed preferences for display in the SCM Vantiga Directory:",
-          size: 8.6,bold: true
-        },
-      ],
-      directory.top - 16,
-      { gap: 0, paddingX: 8, paddingY: 3 },
+    drawCenteredText(
+      "Vantiga Payer has confirmed preferences for display in the SCM Vantiga Directory:",
+      left + contentWidth / 2,
+      directory.top - 20,
+      8.6,
+      true,
     );
     page.drawText(`Vantiga Amount: ${payload.optShowAmountInDirectory}`, {
       x: left + horizontalPad,
