@@ -323,6 +323,10 @@ const ReceiptPreview = ({ standalone = false }) => {
       throw new Error('Receipt preview is not available for download.');
     }
 
+    if (document?.fonts?.ready) {
+      await document.fonts.ready;
+    }
+
     const canvas = await html2canvas(receiptNode, {
       scale: 2,
       useCORS: true,
@@ -362,25 +366,31 @@ const ReceiptPreview = ({ standalone = false }) => {
 
     try {
       setIsDownloadingPdf(true);
+      try {
+        await downloadReceiptPreviewAsPdf();
+        return;
+      } catch (domError) {
+        console.warn('Preview-based PDF generation failed, falling back to server PDF.', domError);
+      }
+
       const entryId = entry?.entryId || entry?.id;
       const receiptNo = entry?.receiptNo;
-
-      if (entryId && receiptNo && receiptNo !== '-') {
-        const { data, error } = await supabase.functions.invoke('generate-receipt-pdf', {
-          body: { entry_id: entryId, receipt_no: receiptNo }
-        });
-
-        if (error) throw error;
-        if (!data?.ok || !data?.pdf_base64) {
-          throw new Error(data?.error || 'Failed to generate receipt PDF');
-        }
-
-        const blob = base64ToBlob(data.pdf_base64, 'application/pdf');
-        const filename = data?.filename || `${toReceiptFileSafeName(entry?.receiptNo)}.pdf`;
-        downloadBlob(blob, filename);
-        return;
+      if (!entryId || !receiptNo || receiptNo === '-') {
+        throw new Error('Receipt number is missing; PDF cannot be generated.');
       }
-      throw new Error('Receipt number is missing; PDF cannot be generated.');
+
+      const { data, error } = await supabase.functions.invoke('generate-receipt-pdf', {
+        body: { entry_id: entryId, receipt_no: receiptNo }
+      });
+
+      if (error) throw error;
+      if (!data?.ok || !data?.pdf_base64) {
+        throw new Error(data?.error || 'Failed to generate receipt PDF');
+      }
+
+      const blob = base64ToBlob(data.pdf_base64, 'application/pdf');
+      const filename = data?.filename || `${toReceiptFileSafeName(entry?.receiptNo)}.pdf`;
+      downloadBlob(blob, filename);
     } catch (error) {
       console.error('Failed to generate receipt PDF:', error);
       window.alert('Unable to download receipt right now. Please try again.');
@@ -445,11 +455,16 @@ const ReceiptPreview = ({ standalone = false }) => {
   const tableRows = [...members, ...Array(Math.max(0, 5 - members.length)).fill(null)];
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background receipt-root">
       <style>{`
         @page {
           size: A4 portrait;
           margin: 12mm;
+        }
+        .receipt-root,
+        .receipt-sheet {
+          -webkit-text-size-adjust: 100%;
+          text-size-adjust: 100%;
         }
         @media screen {
           .receipt-sheet {
@@ -496,7 +511,9 @@ const ReceiptPreview = ({ standalone = false }) => {
 
         {/* Receipt */}
         <div className="container mx-auto px-4 py-8 print:py-0">
-          <div ref={receiptSheetRef} className="receipt-sheet w-full max-w-full mx-auto bg-white border border-gray-300 shadow-sm print:shadow-none text-sm">
+          <div className="overflow-x-auto overscroll-x-contain print:overflow-visible">
+            <div className="mx-auto" style={{ width: '186mm', minWidth: '186mm' }}>
+              <div ref={receiptSheetRef} className="receipt-sheet mx-auto bg-white border border-gray-300 shadow-sm print:shadow-none text-sm">
             <div className="px-4 pt-3 pb-2 border-b border-slate-300">
               <img
                 src={receiptHeaderUrl}
@@ -540,11 +557,11 @@ const ReceiptPreview = ({ standalone = false }) => {
               <div className="text-base font-semibold">
                 Address: <span className="text-sm whitespace-pre-line leading-snug font-normal">{address}</span>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-base font-semibold">
+              <div className="grid grid-cols-2 gap-2 text-base font-semibold">
                 <div>
                   Mobile Number: <span className="text-sm font-mono font-normal">{payerMobile}</span>
                 </div>
-                <div className="sm:text-right">
+                <div className="text-right">
                   Email ID: <span className="text-sm break-all font-mono font-normal">{payerEmail}</span>
                 </div>
               </div>
@@ -607,7 +624,7 @@ const ReceiptPreview = ({ standalone = false }) => {
                   </span>
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+              <div className="grid grid-cols-3 gap-2 text-sm">
                 <div>
                   <span className="font-semibold">Vantiga Amount:</span> {optShowAmount}
                 </div>
@@ -621,7 +638,7 @@ const ReceiptPreview = ({ standalone = false }) => {
             </div>
 
             <div className="border-t border-slate-300 px-6 py-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 text-sm">
+              <div className="grid grid-cols-2 gap-6 text-sm">
                 <div>
                   <div className="font-semibold">Pratinidhi:</div>
                   <div className="mt-1">{pratinidhiName}</div>
@@ -636,6 +653,8 @@ const ReceiptPreview = ({ standalone = false }) => {
             <div className="px-6 pb-3 pt-1 text-center">
               <div className="text-[11px] text-slate-600 font-medium print:text-[10px]">
                 No Signature required as this is a computer generated receipt
+              </div>
+            </div>
               </div>
             </div>
           </div>
