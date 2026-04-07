@@ -1043,7 +1043,7 @@ export async function buildReceiptPdf(payload: ReceiptPayload): Promise<string> 
     const directory = row(66);
     drawSectionBox(directory.top, directory.height, true);
     drawCenteredText(
-      "Vantiga Payer has confirmed preferences for display in the SCM Vantiga Directory:",
+      "Vantiga Payer has confirmed below preferences for display in the SCM Vantiga Directory:",
       left + contentWidth / 2,
       directory.top - 20,
       8.6,

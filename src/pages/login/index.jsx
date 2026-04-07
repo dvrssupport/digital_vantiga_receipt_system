@@ -13,7 +13,7 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ identifier: '', password: '', email: '' });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
@@ -27,10 +27,13 @@ const Login = () => {
       navigate(defaultRoute, { replace: true });
     }
 
-    const savedEmail = localStorage.getItem('rememberedEmail');
+    const savedIdentifier =
+      localStorage.getItem('rememberedIdentifier') ||
+      localStorage.getItem('rememberedEmail') ||
+      '';
     const savedRememberMe = localStorage.getItem('rememberMe') === 'true';
-    if (savedRememberMe && savedEmail) {
-      setFormData(prev => ({ ...prev, email: savedEmail }));
+    if (savedRememberMe && savedIdentifier) {
+      setFormData(prev => ({ ...prev, identifier: savedIdentifier }));
       setRememberMe(true);
     }
   }, [navigate]);
@@ -56,8 +59,16 @@ const Login = () => {
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData?.email?.trim()) newErrors.email = 'Email is required';
-    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData?.email)) newErrors.email = 'Please enter a valid email address';
+    const identifier = formData?.identifier?.trim();
+    if (!identifier) {
+      newErrors.identifier = 'Email or username is required';
+    } else if (identifier.includes('@')) {
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identifier)) {
+        newErrors.identifier = 'Please enter a valid email address';
+      }
+    } else if (!/^[a-zA-Z0-9_.-]{3,30}$/.test(identifier)) {
+      newErrors.identifier = 'Username must be 3-30 chars and can include letters, numbers, ., _, -';
+    }
 
     if (!formData?.password?.trim()) newErrors.password = 'Password is required';
     else if (formData?.password?.length < 8) newErrors.password = 'Password must be at least 8 characters';
@@ -134,27 +145,37 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const email = formData?.email?.trim();
+      const identifier = formData?.identifier?.trim();
+      const isEmailIdentifier = identifier.includes('@');
+      let emailToUse = identifier;
+
+      if (!isEmailIdentifier) {
+        const { data: resolvedEmail, error: resolveError } = await supabase.rpc('resolve_login_email', {
+          p_identifier: identifier,
+        });
+        if (resolveError) throw resolveError;
+        if (resolvedEmail) emailToUse = resolvedEmail;
+      }
 
       // ✅ Auth login
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
+        email: emailToUse,
         password: formData?.password,
       });
 
       if (error) {
-        setErrors({ password: error.message || 'Invalid email or password. Please try again.' });
+        setErrors({ password: 'Invalid email/username or password. Please try again.' });
         return;
       }
 
       const user = data?.user;
       if (!user) {
-        setErrors({ password: 'Invalid email or password. Please try again.' });
+        setErrors({ password: 'Invalid email/username or password. Please try again.' });
         return;
       }
 
       // ✅ Fetch role mapping from user_sabha_profile
-      const profile = await fetchUserProfile(user.id, email);
+      const profile = await fetchUserProfile(user.id, user?.email || emailToUse);
 
       const userProfile = {
         user_id: user.id,
@@ -175,9 +196,12 @@ const Login = () => {
 
       // Remember me
       if (rememberMe) {
-        localStorage.setItem('rememberedEmail', email);
+        localStorage.setItem('rememberedIdentifier', identifier);
+        if (identifier.includes('@')) localStorage.setItem('rememberedEmail', identifier);
+        else localStorage.removeItem('rememberedEmail');
         localStorage.setItem('rememberMe', 'true');
       } else {
+        localStorage.removeItem('rememberedIdentifier');
         localStorage.removeItem('rememberedEmail');
         localStorage.removeItem('rememberMe');
       }
@@ -203,7 +227,13 @@ const Login = () => {
     }
   };
 
-  const handleForgotPassword = () => setShowForgotPassword(true);
+  const handleForgotPassword = () => {
+    const identifier = formData?.identifier?.trim();
+    if (identifier && identifier.includes('@')) {
+      setFormData(prev => ({ ...prev, email: identifier }));
+    }
+    setShowForgotPassword(true);
+  };
 
   const handleForgotPasswordSubmit = async (e) => {
     e?.preventDefault();
@@ -254,13 +284,13 @@ const Login = () => {
           {!showForgotPassword ? (
             <form onSubmit={handleSubmit} className="space-y-6">
               <Input
-                label="Email Address"
-                type="email"
-                name="email"
-                placeholder="Enter your email"
-                value={formData?.email}
+                label="Email Or Username"
+                type="text"
+                name="identifier"
+                placeholder="Enter email or username"
+                value={formData?.identifier}
                 onChange={handleInputChange}
-                error={errors?.email}
+                error={errors?.identifier}
                 required
                 disabled={isLoading}
               />
