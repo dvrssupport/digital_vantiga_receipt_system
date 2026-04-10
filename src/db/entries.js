@@ -13,7 +13,7 @@ export async function fetchEntriesForSabhaFY({ sabhaId, fy, submittedBy }) {
   let query = supabase
     .from("vantiga_entries")
     .select(`
-      id, sabha_id, fy, entry_type, status, paid_by, reference_no, receipt_no, receipt_base_no, edit_count, submitted_by,
+      id, sabha_id, fy, entry_type, status, paid_by, reference_no, remarks, receipt_no, receipt_base_no, edit_count, submitted_by,
       submitted_at, acknowledged_at, rejection_reason,
       families (
         id,

@@ -135,6 +135,7 @@ const EntriesList = forwardRef(({
         status: r.status,
         paidBy: r.paid_by,
         referenceNo: r.reference_no || "",
+        remarks: r.remarks || "",
         receiptNo: r.receipt_no || "",
         receiptBaseNo: r.receipt_base_no || "",
         editCount: Number(r.edit_count || 0),
@@ -1276,6 +1277,17 @@ const EntriesList = forwardRef(({
                       </p>
                     </div>
                   </div>
+
+                  {selectedEntry?.remarks && (
+                    <div>
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                        Remarks
+                      </label>
+                      <p className="mt-1 text-sm font-medium text-foreground whitespace-pre-line bg-muted/30 p-3 rounded border border-border">
+                        {selectedEntry?.remarks}
+                      </p>
+                    </div>
+                  )}
 
                   <div>
                     <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">

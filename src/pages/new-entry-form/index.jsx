@@ -79,6 +79,7 @@ const NewEntryForm = () => {
     optShowEmailInDirectory: 'Yes',
     paidBy: 'Cash',
     referenceNo: '',
+    remarks: '',
   });
 
   // Members state - updated with firstName/lastName
@@ -224,6 +225,7 @@ const NewEntryForm = () => {
         status,
         paid_by,
         reference_no,
+        remarks,
         receipt_base_no,
         edit_count,
         submitted_by,
@@ -316,6 +318,7 @@ const NewEntryForm = () => {
       optShowEmailInDirectory: family?.opt_show_email_in_directory ? 'Yes' : 'No',
       paidBy: data?.paid_by || 'Cash',
       referenceNo: data?.reference_no || '',
+      remarks: data?.remarks || '',
     }));
     setMembers(
       mappedMembers.length
@@ -931,6 +934,7 @@ const NewEntryForm = () => {
           p_entry_type: formData?.entryType,
           p_paid_by: formData?.paidBy,
           p_reference_no: formData?.paidBy === 'Cash' ? null : (formData?.referenceNo || null),
+          p_remarks: formData?.remarks?.trim() || null,
           p_address_multiline: formData?.address,
           p_payer_mobile: formData?.payerMobile,
           p_payer_email: formData?.payerEmail,
@@ -1010,6 +1014,7 @@ const NewEntryForm = () => {
         status: "SUBMITTED",
         paid_by: formData?.paidBy,
         reference_no: formData?.paidBy === "Cash" ? null : (formData?.referenceNo || null),
+        remarks: formData?.remarks?.trim() || null,
         // Receipt numbers are assigned only at Treasurer acknowledgement for all payment modes.
         receipt_no: null,
         submitted_at: new Date().toISOString(),
@@ -1475,6 +1480,23 @@ const NewEntryForm = () => {
                 />
               )}
             </div>
+            <div className="mt-6 space-y-2">
+              <label className="text-sm font-medium leading-none text-foreground" htmlFor="entry-remarks">
+                Remarks
+              </label>
+              <textarea
+                id="entry-remarks"
+                name="remarks"
+                value={formData?.remarks}
+                onChange={handleInputChange}
+                rows={3}
+                placeholder="Optional internal remarks"
+                className="flex w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              />
+              <p className="text-sm text-muted-foreground">
+                Optional. This will appear in Sabha entry details only and not on the receipt.
+              </p>
+            </div>
           </div>
 
           {!isMathMaryada && (
@@ -1649,6 +1671,12 @@ const NewEntryForm = () => {
                       </div>
                     )}
                   </div>
+                  {formData?.remarks?.trim() && (
+                    <div className="mt-4 rounded-md border border-border bg-muted/20 p-3">
+                      <p className="text-xs text-muted-foreground">Internal Remarks (not shown on receipt)</p>
+                      <p className="mt-1 font-medium text-foreground whitespace-pre-line">{formData?.remarks}</p>
+                    </div>
+                  )}
                 </section>
 
                 {!isMathMaryada && (
