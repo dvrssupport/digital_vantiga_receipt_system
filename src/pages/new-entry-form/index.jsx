@@ -105,6 +105,7 @@ const NewEntryForm = () => {
   // Duplicate warnings
   const [duplicateWarnings, setDuplicateWarnings] = useState([]);
   const [showDuplicateWarning, setShowDuplicateWarning] = useState(false);
+  const [referenceDuplicateWarning, setReferenceDuplicateWarning] = useState('');
   const [editMeta, setEditMeta] = useState(null);
 
   // ---------
@@ -388,6 +389,7 @@ const NewEntryForm = () => {
     } else {
       setDuplicateWarnings([]);
       setShowDuplicateWarning(false);
+      setReferenceDuplicateWarning('');
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -443,6 +445,7 @@ const NewEntryForm = () => {
       if (error) throw error;
 
       const matchingEntries = [];
+      const duplicateReferenceEntries = [];
 
       for (const entry of (data || [])) {
         const entryTotal =
@@ -456,7 +459,7 @@ const NewEntryForm = () => {
           entry?.reference_no === formData?.referenceNo &&
           ['Cheque', 'NEFT/RTGS/IMPS', 'UPI']?.includes(formData?.paidBy)
         ) {
-          matchingEntries.push({
+          const duplicateEntry = {
             // Shape this similar to your UI expectation
             entryId: entry?.id,
             submittedDate: entry?.submitted_at,
@@ -469,7 +472,9 @@ const NewEntryForm = () => {
               }
             ],
             matchReason: 'Same reference number'
-          });
+          };
+          matchingEntries.push(duplicateEntry);
+          duplicateReferenceEntries.push(duplicateEntry);
           continue;
         }
 
@@ -525,8 +530,14 @@ const NewEntryForm = () => {
 
       setDuplicateWarnings(uniqueMatches);
       setShowDuplicateWarning(uniqueMatches.length > 0);
+      setReferenceDuplicateWarning(
+        duplicateReferenceEntries.length > 0
+          ? `Reference number "${formData?.referenceNo?.trim()}" already exists in ${duplicateReferenceEntries.length} ${duplicateReferenceEntries.length === 1 ? 'entry' : 'entries'}. You can still submit this payment.`
+          : ''
+      );
     } catch (error) {
       console.error('Error checking for duplicates:', error);
+      setReferenceDuplicateWarning('');
       // Non-blocking; no toast needed, but you can keep this if you want:
       // toast.error("Duplicate check failed (non-blocking).");
     }
@@ -1469,15 +1480,22 @@ const NewEntryForm = () => {
                 required
               />
               {formData?.paidBy !== 'Cash' && (
-                <Input
-                  label="Reference Number"
-                  name="referenceNo"
-                  value={formData?.referenceNo}
-                  onChange={handleInputChange}
-                  placeholder="Enter cheque/transaction reference"
-                  required
-                  error={touchedFields?.referenceNo ? errors?.referenceNo : ''}
-                />
+                <div>
+                  <Input
+                    label="Reference Number"
+                    name="referenceNo"
+                    value={formData?.referenceNo}
+                    onChange={handleInputChange}
+                    placeholder="Enter cheque/transaction reference"
+                    required
+                    error={touchedFields?.referenceNo ? errors?.referenceNo : ''}
+                  />
+                  {referenceDuplicateWarning && !errors?.referenceNo && (
+                    <p className="mt-2 text-sm text-amber-700">
+                      {referenceDuplicateWarning}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
             <div className="mt-6 space-y-2">
