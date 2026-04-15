@@ -263,6 +263,9 @@ after insert or update on public.vantiga_entries
 for each row
 execute function public.record_vantiga_entry_audit();
 
+alter table public.vantiga_entries
+add column if not exists remarks text;
+
 create or replace function public.edit_rejected_vantiga_entry(
   p_entry_id uuid,
   p_fy text,
@@ -292,9 +295,6 @@ declare
   v_actor_can_edit boolean := false;
   v_entry public.vantiga_entries%rowtype;
   v_next_edit_count integer;
-  v_receipt_code text;
-  v_seq integer;
-  v_next_receipt_no text;
   v_member jsonb;
 begin
   if v_actor is null then
@@ -391,26 +391,6 @@ begin
   end loop;
 
   v_next_edit_count := coalesce(v_entry.edit_count, 0) + 1;
-  v_next_receipt_no := null;
-
-  if coalesce(v_entry.receipt_base_no, '') <> '' then
-    -- Keep base receipt visible at resubmission; suffix is finalized at treasurer acknowledgement.
-    v_next_receipt_no := v_entry.receipt_base_no;
-  elsif p_paid_by = 'Cash' then
-    select coalesce(s.receipt_code, s.code, 'SABHA')
-    into v_receipt_code
-    from public.sabhas s
-    where s.id = v_entry.sabha_id;
-
-    select coalesce(count(*), 0) + 1
-    into v_seq
-    from public.vantiga_entries ve
-    where ve.sabha_id = v_entry.sabha_id
-      and ve.fy = p_fy
-      and ve.receipt_no is not null;
-
-    v_next_receipt_no := coalesce(v_receipt_code, 'SABHA') || '-' || lpad(v_seq::text, 4, '0');
-  end if;
 
   update public.vantiga_entries
   set
@@ -424,12 +404,12 @@ begin
     submitted_at = now(),
     acknowledged_by = null,
     acknowledged_at = null,
-    receipt_no = v_next_receipt_no,
+    receipt_no = null,
     edit_count = v_next_edit_count
   where id = v_entry.id;
 
   return query
-  select v_entry.id, v_next_receipt_no, v_next_edit_count;
+  select v_entry.id, null::text, v_next_edit_count;
 end;
 $$;
 

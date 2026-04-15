@@ -561,7 +561,7 @@ const NewEntryForm = () => {
     { value: 'Koundinya', label: 'Koundinya' },
     { value: 'Bharadwaja', label: 'Bharadwaja' },
     { value: 'Vatsa', label: 'Vatsa' },
-    { value: 'Kaushika', label: 'Kaushika' },
+    { value: 'Kaushika/Kaumsha', label: 'Kaushika/Kaumsha' },
     { value: 'Atri', label: 'Atri' },
     { value: 'Kamshya', label: 'Kamshya' }
   ];
