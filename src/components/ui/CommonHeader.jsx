@@ -1,13 +1,19 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import Button from './Button';
+import { supabase } from '../../supabaseClient';
+import { clearUserSession } from '../../utils/auth';
 
 const CommonHeader = () => {
   const navigate = useNavigate();
   const logoUrl = new URL('../../../cropped-Math-Logo-Round.png', import.meta.url).href;
-  const handleLogout = () => {
-    localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('userProfile');
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.warn('Sign out failed:', error);
+    }
+    clearUserSession();
     navigate('/login', { replace: true });
   };
 

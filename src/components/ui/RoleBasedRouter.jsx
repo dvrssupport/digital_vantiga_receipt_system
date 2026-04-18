@@ -19,9 +19,11 @@ const RoleBasedRouter = ({ children, allowedRoles = [] }) => {
 
 const getDefaultRouteForRole = (role) => {
   const roleRoutes = {
+    admin: '/admin-users',
     scm_office: '/scm-office-dashboard',
     pratinidhi: '/sabha-dashboard',
     treasurer: '/sabha-dashboard',
+    auditor: '/sabha-dashboard',
   };
 
   return roleRoutes?.[role] || '/login';
