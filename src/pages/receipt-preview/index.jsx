@@ -22,6 +22,12 @@ const toReceiptFileSafeName = (receiptNo) => {
   return `Receipt-${value.replace(/[\\/:*?"<>|]+/g, '-').replace(/\s+/g, ' ').trim()}`;
 };
 
+const logPdfSize = (label, sizeInBytes) => {
+  if (!import.meta.env.DEV || !Number.isFinite(sizeInBytes)) return;
+  const sizeInMb = sizeInBytes / (1024 * 1024);
+  console.info(`[Receipt PDF] ${label}: ${sizeInMb.toFixed(2)} MB (${sizeInBytes} bytes)`);
+};
+
 const getStandaloneFallback = () => ({
   receiptNo: 'PREVIEW-001',
   fy: '2025-26',
@@ -327,8 +333,9 @@ const ReceiptPreview = ({ standalone = false }) => {
       await document.fonts.ready;
     }
 
+    const canvasScale = 1.5;
     const canvas = await html2canvas(receiptNode, {
-      scale: 2,
+      scale: canvasScale,
       useCORS: true,
       backgroundColor: '#ffffff',
       logging: false,
@@ -336,7 +343,13 @@ const ReceiptPreview = ({ standalone = false }) => {
       windowHeight: receiptNode.scrollHeight
     });
 
-    const imageData = canvas.toDataURL('image/png');
+    if (import.meta.env.DEV) {
+      console.info(
+        `[Receipt PDF] Browser fallback canvas: ${canvas.width}x${canvas.height} at scale ${canvasScale}`
+      );
+    }
+
+    const imageData = canvas.toDataURL('image/jpeg', 0.86);
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pageWidth = pdf.internal.pageSize.getWidth();
     const pageHeight = pdf.internal.pageSize.getHeight();
@@ -348,17 +361,19 @@ const ReceiptPreview = ({ standalone = false }) => {
     let remainingHeight = imageHeight;
     let positionY = margin;
 
-    pdf.addImage(imageData, 'PNG', margin, positionY, usableWidth, imageHeight);
+    pdf.addImage(imageData, 'JPEG', margin, positionY, usableWidth, imageHeight);
     remainingHeight -= usableHeight;
 
     while (remainingHeight > 0) {
       positionY = remainingHeight - imageHeight + margin;
       pdf.addPage();
-      pdf.addImage(imageData, 'PNG', margin, positionY, usableWidth, imageHeight);
+      pdf.addImage(imageData, 'JPEG', margin, positionY, usableWidth, imageHeight);
       remainingHeight -= usableHeight;
     }
 
-    pdf.save(`${toReceiptFileSafeName(entry?.receiptNo)}.pdf`);
+    const blob = pdf.output('blob');
+    logPdfSize('Browser fallback PDF', blob.size);
+    downloadBlob(blob, `${toReceiptFileSafeName(entry?.receiptNo)}.pdf`);
   };
 
   const handleDownloadPdf = async () => {
@@ -366,31 +381,33 @@ const ReceiptPreview = ({ standalone = false }) => {
 
     try {
       setIsDownloadingPdf(true);
-      try {
-        await downloadReceiptPreviewAsPdf();
-        return;
-      } catch (domError) {
-        console.warn('Preview-based PDF generation failed, falling back to server PDF.', domError);
-      }
-
       const entryId = entry?.entryId || entry?.id;
       const receiptNo = entry?.receiptNo;
-      if (!entryId || !receiptNo || receiptNo === '-') {
-        throw new Error('Receipt number is missing; PDF cannot be generated.');
+
+      if (entryId && receiptNo && receiptNo !== '-') {
+        try {
+          const { data, error } = await supabase.functions.invoke('generate-receipt-pdf', {
+            body: { entry_id: entryId, receipt_no: receiptNo }
+          });
+
+          if (error) throw error;
+          if (!data?.ok || !data?.pdf_base64) {
+            throw new Error(data?.error || 'Failed to generate receipt PDF');
+          }
+
+          const blob = base64ToBlob(data.pdf_base64, 'application/pdf');
+          logPdfSize('Server PDF', blob.size);
+          const filename = data?.filename || `${toReceiptFileSafeName(entry?.receiptNo)}.pdf`;
+          downloadBlob(blob, filename);
+          return;
+        } catch (serverError) {
+          console.warn('Server PDF generation failed, falling back to browser preview PDF.', serverError);
+        }
+      } else if (import.meta.env.DEV) {
+        console.info('[Receipt PDF] Missing entry id or receipt number; using browser fallback.');
       }
 
-      const { data, error } = await supabase.functions.invoke('generate-receipt-pdf', {
-        body: { entry_id: entryId, receipt_no: receiptNo }
-      });
-
-      if (error) throw error;
-      if (!data?.ok || !data?.pdf_base64) {
-        throw new Error(data?.error || 'Failed to generate receipt PDF');
-      }
-
-      const blob = base64ToBlob(data.pdf_base64, 'application/pdf');
-      const filename = data?.filename || `${toReceiptFileSafeName(entry?.receiptNo)}.pdf`;
-      downloadBlob(blob, filename);
+      await downloadReceiptPreviewAsPdf();
     } catch (error) {
       console.error('Failed to generate receipt PDF:', error);
       window.alert('Unable to download receipt right now. Please try again.');
