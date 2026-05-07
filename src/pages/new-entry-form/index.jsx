@@ -140,7 +140,7 @@ const NewEntryForm = () => {
         return;
       }
 
-      if (profile?.role === 'scm_office') {
+      if (profile?.role === 'scm_office' || profile?.role === 'general_manager') {
         navigate('/scm-office-dashboard', { replace: true });
         return;
       }

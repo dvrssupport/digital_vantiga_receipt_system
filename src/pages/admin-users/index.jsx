@@ -14,6 +14,7 @@ import {
 const ROLE_OPTIONS = [
   { value: 'admin', label: 'Admin' },
   { value: 'scm_office', label: 'SCM Office' },
+  { value: 'general_manager', label: 'General Manager' },
   { value: 'pratinidhi', label: 'Pratinidhi' },
   { value: 'treasurer', label: 'Treasurer' },
   { value: 'auditor', label: 'Auditor' },
@@ -598,7 +599,7 @@ const AdminUsers = () => {
                   <div>
                     <h3 className="text-base font-semibold text-foreground">Role Assignments</h3>
                     <p className="text-sm text-muted-foreground">
-                      Admin and SCM Office do not take a sabha. Sabha-bound roles require one.
+                      Admin, SCM Office, and General Manager do not take a sabha. Sabha-bound roles require one.
                     </p>
                   </div>
                   <Button

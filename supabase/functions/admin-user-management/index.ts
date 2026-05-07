@@ -8,7 +8,19 @@ const corsHeaders = {
 
 const jsonHeaders = { "Content-Type": "application/json", ...corsHeaders };
 const SABHA_BOUND_ROLES = new Set(["pratinidhi", "treasurer", "auditor"]);
+const VALID_ROLES = new Set(["admin", "scm_office", "general_manager", "pratinidhi", "treasurer", "auditor"]);
 const USER_BAN_DURATION = "876000h";
+const VALIDATION_ERROR_MESSAGES = [
+  "Action is required.",
+  "At least one role assignment is required.",
+  "Password is required.",
+  "Password must be at least 8 characters.",
+  "Full name is required.",
+  "Email is required.",
+  "Username is required.",
+  "user_id is required.",
+  "Username already exists.",
+];
 
 type AssignmentInput = {
   role?: string | null;
@@ -58,6 +70,36 @@ function errorResponse(message: string, status = 400) {
   );
 }
 
+function classifyErrorStatus(message: string): number {
+  if (
+    message === "Missing authorization token." ||
+    message === "Invalid session."
+  ) {
+    return 401;
+  }
+
+  if (
+    message === "Your admin account is inactive." ||
+    message === "Admin access is required."
+  ) {
+    return 403;
+  }
+
+  if (
+    message.startsWith("Unsupported action:") ||
+    message.startsWith("Unsupported role for assignment ") ||
+    message.startsWith("Role is required for assignment ") ||
+    message.endsWith(" role requires a sabha assignment.") ||
+    message.endsWith(" role cannot be linked to a sabha.") ||
+    message.startsWith("Duplicate role assignment found for ") ||
+    VALIDATION_ERROR_MESSAGES.includes(message)
+  ) {
+    return 400;
+  }
+
+  return 500;
+}
+
 function normalizeText(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -89,6 +131,10 @@ function normalizeAssignments(input: unknown): Array<{ role: string; sabha_id: s
 
     if (!role) {
       throw new Error(`Role is required for assignment ${index + 1}.`);
+    }
+
+    if (!VALID_ROLES.has(role)) {
+      throw new Error(`Unsupported role for assignment ${index + 1}.`);
     }
 
     if (SABHA_BOUND_ROLES.has(role) && !sabhaId) {
@@ -376,7 +422,6 @@ async function createUser(
     });
 
   if (profileError) throw profileError;
-
   await syncAssignments(supabase, userId, assignments);
 
   return { user_id: userId };
@@ -433,7 +478,6 @@ async function updateUser(
     });
 
   if (profileError) throw profileError;
-
   await syncAssignments(supabase, userId, assignments);
 
   return { user_id: userId };
@@ -489,6 +533,6 @@ Deno.serve(async (req) => {
     return errorResponse(`Unsupported action: ${action}`);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    return errorResponse(message, 500);
+    return errorResponse(message, classifyErrorStatus(message));
   }
 });

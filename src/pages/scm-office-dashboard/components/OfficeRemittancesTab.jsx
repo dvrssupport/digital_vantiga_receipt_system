@@ -87,7 +87,7 @@ const openPrintWindow = (title, bodyHtml) => {
   };
 };
 
-const OfficeRemittancesTab = ({ selectedFY }) => {
+const OfficeRemittancesTab = ({ selectedFY, canManageRemittances = true }) => {
   const ledgerRef = useRef(null);
 
   const [remittances, setRemittances] = useState([]);
@@ -332,6 +332,7 @@ const OfficeRemittancesTab = ({ selectedFY }) => {
   };
 
   const handleVerify = async () => {
+    if (!canManageRemittances) return;
     if (!confirmVerifyId) return;
 
     setIsProcessing(true);
@@ -364,6 +365,7 @@ const OfficeRemittancesTab = ({ selectedFY }) => {
   };
 
   const handleReject = async () => {
+    if (!canManageRemittances) return;
     if (!rejectTargetId || !rejectReason.trim()) return;
 
     setIsProcessing(true);
@@ -608,9 +610,11 @@ const OfficeRemittancesTab = ({ selectedFY }) => {
                   <th className="px-6 py-3 text-left text-xs font-medium bg-[#F97316] text-white uppercase tracking-wider">
                     Rejection Reason
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium bg-[#F97316] text-white uppercase tracking-wider">
-                    Actions
-                  </th>
+                  {canManageRemittances && (
+                    <th className="px-6 py-3 text-left text-xs font-medium bg-[#F97316] text-white uppercase tracking-wider">
+                      Actions
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="bg-card divide-y divide-border">
@@ -640,33 +644,35 @@ const OfficeRemittancesTab = ({ selectedFY }) => {
                     <td className="px-6 py-4 text-sm text-muted-foreground">
                       {row?.status === "REJECTED" ? row?.rejection_reason || "-" : "-"}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                      {row?.status === "SUBMITTED" ? (
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setConfirmVerifyId(row?.id)}
-                            disabled={isProcessing}
-                          >
-                            Verify
-                          </Button>
-                          <Button
-                            variant="destructive"
-                            size="sm"
-                            onClick={() => {
-                              setRejectTargetId(row?.id);
-                              setRejectReason("");
-                            }}
-                            disabled={isProcessing}
-                          >
-                            Reject
-                          </Button>
-                        </div>
-                      ) : (
-                        "-"
-                      )}
-                    </td>
+                    {canManageRemittances && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm">
+                        {row?.status === "SUBMITTED" ? (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setConfirmVerifyId(row?.id)}
+                              disabled={isProcessing}
+                            >
+                              Verify
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => {
+                                setRejectTargetId(row?.id);
+                                setRejectReason("");
+                              }}
+                              disabled={isProcessing}
+                            >
+                              Reject
+                            </Button>
+                          </div>
+                        ) : (
+                          "-"
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
@@ -755,7 +761,7 @@ const OfficeRemittancesTab = ({ selectedFY }) => {
         </div>
       )}
 
-      {confirmVerifyId && (
+      {canManageRemittances && confirmVerifyId && (
         <>
           <div
             className="fixed inset-0 bg-black/60 z-[60] transition-opacity duration-300"
@@ -801,7 +807,7 @@ const OfficeRemittancesTab = ({ selectedFY }) => {
         </>
       )}
 
-      {rejectTargetId && (
+      {canManageRemittances && rejectTargetId && (
         <>
           <div
             className="fixed inset-0 bg-black/60 z-[60] transition-opacity duration-300"

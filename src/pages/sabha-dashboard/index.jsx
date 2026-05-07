@@ -82,7 +82,7 @@ const SabhaDashboard = () => {
 
       const profile = JSON.parse(localStorage.getItem('userProfile') || '{}');
 
-      if (profile?.role === 'scm_office') {
+      if (profile?.role === 'scm_office' || profile?.role === 'general_manager') {
         navigate('/scm-office-dashboard', { replace: true });
         return;
       }

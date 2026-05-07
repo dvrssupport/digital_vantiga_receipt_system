@@ -40,6 +40,7 @@ const UserProfileHeader = () => {
 
   const getRoleDisplay = () => {
     if (role === 'scm_office') return 'SCM Office';
+    if (role === 'general_manager') return 'General Manager';
     if (role === 'pratinidhi') return 'Pratinidhi';
     if (role === 'treasurer') return 'Treasurer';
     return role;

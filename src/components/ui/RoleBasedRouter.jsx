@@ -21,6 +21,7 @@ const getDefaultRouteForRole = (role) => {
   const roleRoutes = {
     admin: '/admin-users',
     scm_office: '/scm-office-dashboard',
+    general_manager: '/scm-office-dashboard',
     pratinidhi: '/sabha-dashboard',
     treasurer: '/sabha-dashboard',
     auditor: '/sabha-dashboard',

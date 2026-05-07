@@ -12,6 +12,8 @@ import { getCurrentFinancialYear, getFinancialYearOptions } from '../../utils/fi
 // ✅ ADD THIS:
 import SummaryTab from './components/SummaryTab';
 
+const OFFICE_DASHBOARD_ROLES = new Set(['scm_office', 'general_manager']);
+
 const ScmOfficeDashboard = () => {
   const navigate = useNavigate();
   const [userProfile, setUserProfile] = useState(null);
@@ -31,7 +33,7 @@ const ScmOfficeDashboard = () => {
 
     const profile = JSON.parse(localStorage.getItem('userProfile') || '{}');
 
-    if (profile?.role !== 'scm_office') {
+    if (!OFFICE_DASHBOARD_ROLES.has(profile?.role)) {
       setIsAccessDenied(true);
       return;
     }
@@ -46,6 +48,9 @@ const ScmOfficeDashboard = () => {
   const handleGoToSabhaDashboard = () => {
     navigate('/sabha-dashboard', { replace: true });
   };
+
+  const isScmOffice = userProfile?.role === 'scm_office';
+  const canManageRemittances = isScmOffice;
 
   if (isAccessDenied) {
     return (
@@ -140,16 +145,18 @@ const ScmOfficeDashboard = () => {
             >
               Sabha-Wise Comparison
             </button>
-            <button
-              onClick={() => setActiveTab('all-entries')}
-              className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
-                activeTab === 'all-entries'
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              All Entries
-            </button>
+            {isScmOffice && (
+              <button
+                onClick={() => setActiveTab('all-entries')}
+                className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
+                  activeTab === 'all-entries'
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                All Entries
+              </button>
+            )}
             <button
               onClick={() => setActiveTab('remittances')}
               className={`px-4 py-2 text-sm font-medium rounded transition-colors ${
@@ -175,12 +182,16 @@ const ScmOfficeDashboard = () => {
           <SabhaComparisonTab selectedFY={selectedFY} />
         )}
 
-        {activeTab === 'all-entries' && (
+        {activeTab === 'all-entries' && isScmOffice && (
           <AllEntriesTab selectedFY={selectedFY} />
         )}
 
         {activeTab === 'remittances' && (
-          <OfficeRemittancesTab selectedFY={selectedFY} userProfile={userProfile} />
+          <OfficeRemittancesTab
+            selectedFY={selectedFY}
+            userProfile={userProfile}
+            canManageRemittances={canManageRemittances}
+          />
         )}
       </main>
     </div>

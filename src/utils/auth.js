@@ -1,12 +1,13 @@
 export const ROLE_DEFAULT_ROUTES = {
   admin: '/admin-users',
   scm_office: '/scm-office-dashboard',
+  general_manager: '/scm-office-dashboard',
   pratinidhi: '/sabha-dashboard',
   treasurer: '/sabha-dashboard',
   auditor: '/sabha-dashboard',
 };
 
-const ROLE_PRIORITY = ['admin', 'scm_office', 'pratinidhi', 'treasurer', 'auditor'];
+const ROLE_PRIORITY = ['admin', 'scm_office', 'general_manager', 'pratinidhi', 'treasurer', 'auditor'];
 
 function rankRole(role) {
   const index = ROLE_PRIORITY.indexOf(role);

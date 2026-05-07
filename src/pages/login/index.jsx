@@ -123,7 +123,7 @@ const Login = () => {
 
       const roleDefault = getDefaultRouteForRole(profile?.role);
       const safeRedirect =
-        profile?.role === 'scm_office'
+        profile?.role === 'scm_office' || profile?.role === 'general_manager'
           ? '/scm-office-dashboard'
           : profile?.role === 'admin'
             ? '/admin-users'
