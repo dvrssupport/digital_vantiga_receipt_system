@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Checkbox from '../../components/ui/Checkbox';
@@ -18,11 +18,10 @@ const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [formData, setFormData] = useState({ identifier: '', password: '', email: '' });
+  const [formData, setFormData] = useState({ identifier: '', password: '' });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [sessionMessage, setSessionMessage] = useState(location?.state?.message || '');
 
   useEffect(() => {
@@ -162,41 +161,6 @@ const Login = () => {
     }
   };
 
-  const handleForgotPassword = () => {
-    const identifier = formData?.identifier?.trim();
-    if (identifier && identifier.includes('@')) {
-      setFormData((prev) => ({ ...prev, email: identifier }));
-    }
-    setShowForgotPassword(true);
-  };
-
-  const handleForgotPasswordSubmit = async (event) => {
-    event?.preventDefault();
-
-    if (!formData?.email?.trim()) {
-      setErrors({ email: 'Please enter your email address' });
-      return;
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData?.email)) {
-      setErrors({ email: 'Please enter a valid email address' });
-      return;
-    }
-
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(formData.email.trim(), {
-        redirectTo: window.location.origin + '/reset-password',
-      });
-      if (error) throw error;
-
-      alert(`Password reset instructions have been sent to ${formData?.email}. Please check your inbox.`);
-      setShowForgotPassword(false);
-      setErrors({});
-    } catch (err) {
-      console.error('Forgot password error:', err);
-      setErrors({ email: err?.message || 'Failed to send reset email. Please try again.' });
-    }
-  };
-
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -206,121 +170,73 @@ const Login = () => {
               <img src={logoUrl} alt="SCM Vantiga Portal" className="w-20 h-20" />
             </div>
             <h1 className="text-2xl font-semibold text-card-foreground mb-2">
-              {showForgotPassword ? 'Reset Password' : 'Digital Vantiga Receipt System'}
+              Digital Vantiga Receipt System
             </h1>
             <p className="text-sm text-muted-foreground">
-              {showForgotPassword
-                ? 'Enter your email to receive reset instructions'
-                : 'Sign in to access your dashboard'}
+              Sign in to access your dashboard
             </p>
           </div>
 
-          {sessionMessage && !showForgotPassword && (
+          {sessionMessage && (
             <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
               {sessionMessage}
             </div>
           )}
 
-          {!showForgotPassword ? (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <Input
-                label="Email Or Username"
-                type="text"
-                name="identifier"
-                placeholder="Enter email or username"
-                value={formData?.identifier}
-                onChange={handleInputChange}
-                error={errors?.identifier}
-                required
-                disabled={isLoading}
-              />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Input
+              label="Email Or Username"
+              type="text"
+              name="identifier"
+              placeholder="Enter email or username"
+              value={formData?.identifier}
+              onChange={handleInputChange}
+              error={errors?.identifier}
+              required
+              disabled={isLoading}
+            />
 
-              <Input
-                label="Password"
-                type="password"
-                name="password"
-                placeholder="Enter your password"
-                value={formData?.password}
-                onChange={handleInputChange}
-                error={errors?.password}
-                required
-                disabled={isLoading}
-                showPasswordToggle={true}
-              />
+            <Input
+              label="Password"
+              type="password"
+              name="password"
+              placeholder="Enter your password"
+              value={formData?.password}
+              onChange={handleInputChange}
+              error={errors?.password}
+              required
+              disabled={isLoading}
+              showPasswordToggle={true}
+            />
 
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Checkbox
-                    id="remember-me"
-                    checked={rememberMe}
-                    onCheckedChange={setRememberMe}
-                    disabled={isLoading}
-                  />
-                  <label
-                    htmlFor="remember-me"
-                    className="text-sm font-medium text-foreground cursor-pointer select-none"
-                  >
-                    Remember me
-                  </label>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleForgotPassword}
-                  className="text-sm text-primary hover:underline"
+            <div className="flex items-center">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="remember-me"
+                  checked={rememberMe}
+                  onCheckedChange={setRememberMe}
+                  disabled={isLoading}
+                />
+                <label
+                  htmlFor="remember-me"
+                  className="text-sm font-medium text-foreground cursor-pointer select-none"
                 >
-                  Forgot password?
-                </button>
+                  Remember me
+                </label>
               </div>
+            </div>
 
-              <Button
-                type="submit"
-                variant="outline"
-                fullWidth
-                loading={isLoading}
-                disabled={isLoading}
-                className="bg-[#F97316] text-white"
-              >
-                Sign In
-              </Button>
-
-              <div className="text-center">
-                <Link to="/admin-login" className="text-sm text-primary hover:underline">
-                  Admin sign in
-                </Link>
-              </div>
-            </form>
-          ) : (
-            <form onSubmit={handleForgotPasswordSubmit} className="space-y-6">
-              <Input
-                label="Email Address"
-                type="email"
-                name="email"
-                placeholder="Enter your email"
-                value={formData?.email}
-                onChange={handleInputChange}
-                error={errors?.email}
-                required
-              />
-
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  variant="outline"
-                  fullWidth
-                  onClick={() => {
-                    setShowForgotPassword(false);
-                    setErrors({});
-                  }}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" variant="default" fullWidth>
-                  Send Reset Link
-                </Button>
-              </div>
-            </form>
-          )}
+            <Button
+              type="submit"
+              variant="outline"
+              fullWidth
+              loading={isLoading}
+              disabled={isLoading}
+              className="bg-[#F97316] text-white"
+            >
+              Sign In
+            </Button>
+          </form>
         </div>
       </div>
     </div>
