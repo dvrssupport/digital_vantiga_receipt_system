@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import Input from '../../components/ui/Input';
 import Button from '../../components/ui/Button';
 import Checkbox from '../../components/ui/Checkbox';
@@ -9,25 +9,44 @@ import {
   fetchUserProfile,
   getDefaultRouteForRole,
   persistUserSession,
+  requireSupabaseSession,
   resolveIdentifierToEmail,
 } from '../../utils/auth';
 
 const Login = () => {
   const logoUrl = new URL('../../../cropped-Math-Logo-Round.png', import.meta.url).href;
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [formData, setFormData] = useState({ identifier: '', password: '', email: '' });
   const [errors, setErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [sessionMessage, setSessionMessage] = useState(location?.state?.message || '');
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-    if (isAuthenticated) {
-      const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-      navigate(getDefaultRouteForRole(userProfile?.role), { replace: true });
-    }
+    let isMounted = true;
+
+    const redirectIfSessionIsValid = async () => {
+      const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+      if (!isAuthenticated) return;
+
+      try {
+        await requireSupabaseSession(supabase);
+        if (!isMounted) return;
+
+        const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+        navigate(getDefaultRouteForRole(userProfile?.role), { replace: true });
+      } catch {
+        clearUserSession();
+        if (isMounted) {
+          setSessionMessage('Your session has expired. Please sign in again.');
+        }
+      }
+    };
+
+    redirectIfSessionIsValid();
 
     const savedIdentifier =
       localStorage.getItem('rememberedIdentifier') ||
@@ -38,6 +57,10 @@ const Login = () => {
       setFormData((prev) => ({ ...prev, identifier: savedIdentifier }));
       setRememberMe(true);
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [navigate]);
 
   const validateForm = () => {
@@ -191,6 +214,12 @@ const Login = () => {
                 : 'Sign in to access your dashboard'}
             </p>
           </div>
+
+          {sessionMessage && !showForgotPassword && (
+            <div className="mb-6 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              {sessionMessage}
+            </div>
+          )}
 
           {!showForgotPassword ? (
             <form onSubmit={handleSubmit} className="space-y-6">

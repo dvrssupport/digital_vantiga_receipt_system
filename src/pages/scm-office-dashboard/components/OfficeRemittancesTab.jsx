@@ -1,11 +1,17 @@
 ﻿
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Button from "../../../components/ui/Button";
 import Select from "../../../components/ui/Select";
 import Icon from "../../../components/AppIcon";
 import { supabase } from "../../../supabaseClient";
 import { formatCurrencyINR } from "../../../utils/amount";
 import { getRemittanceStatusBadge } from "../../../utils/remittanceStatus.jsx";
+import {
+  isSessionExpiredError,
+  redirectToLogin,
+  requireSupabaseUser
+} from "../../../utils/auth";
 
 const STATUS_OPTIONS = [
   { value: "ALL", label: "All Status" },
@@ -88,6 +94,7 @@ const openPrintWindow = (title, bodyHtml) => {
 };
 
 const OfficeRemittancesTab = ({ selectedFY, canManageRemittances = true }) => {
+  const navigate = useNavigate();
   const ledgerRef = useRef(null);
 
   const [remittances, setRemittances] = useState([]);
@@ -337,11 +344,8 @@ const OfficeRemittancesTab = ({ selectedFY, canManageRemittances = true }) => {
 
     setIsProcessing(true);
     try {
-      const { data: userData, error: userErr } = await supabase.auth.getUser();
-      if (userErr) throw userErr;
-
-      const userId = userData?.user?.id;
-      if (!userId) throw new Error("No active session. Please login again.");
+      const user = await requireSupabaseUser(supabase);
+      const userId = user.id;
 
       const { error } = await supabase
         .from("sabha_remittances")
@@ -358,6 +362,11 @@ const OfficeRemittancesTab = ({ selectedFY, canManageRemittances = true }) => {
       closeVerifyModal();
     } catch (err) {
       console.error("Failed to verify remittance", err);
+      if (isSessionExpiredError(err)) {
+        alert(err?.message || "Your session has expired. Please sign in again.");
+        redirectToLogin(navigate);
+        return;
+      }
       alert(err?.message || "Failed to verify remittance");
     } finally {
       setIsProcessing(false);
@@ -370,11 +379,8 @@ const OfficeRemittancesTab = ({ selectedFY, canManageRemittances = true }) => {
 
     setIsProcessing(true);
     try {
-      const { data: userData, error: userErr } = await supabase.auth.getUser();
-      if (userErr) throw userErr;
-
-      const userId = userData?.user?.id;
-      if (!userId) throw new Error("No active session. Please login again.");
+      const user = await requireSupabaseUser(supabase);
+      const userId = user.id;
 
       const { error } = await supabase
         .from("sabha_remittances")
@@ -391,6 +397,11 @@ const OfficeRemittancesTab = ({ selectedFY, canManageRemittances = true }) => {
       closeRejectModal();
     } catch (err) {
       console.error("Failed to reject remittance", err);
+      if (isSessionExpiredError(err)) {
+        alert(err?.message || "Your session has expired. Please sign in again.");
+        redirectToLogin(navigate);
+        return;
+      }
       alert(err?.message || "Failed to reject remittance");
     } finally {
       setIsProcessing(false);

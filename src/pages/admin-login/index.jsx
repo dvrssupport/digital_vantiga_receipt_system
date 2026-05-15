@@ -8,6 +8,7 @@ import {
   fetchUserProfile,
   getDefaultRouteForRole,
   persistUserSession,
+  requireSupabaseSession,
   resolveIdentifierToEmail,
 } from '../../utils/auth';
 
@@ -19,11 +20,28 @@ const AdminLogin = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-    if (!isAuthenticated) return;
+    let isMounted = true;
 
-    const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
-    navigate(getDefaultRouteForRole(userProfile?.role), { replace: true });
+    const redirectIfSessionIsValid = async () => {
+      const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+      if (!isAuthenticated) return;
+
+      try {
+        await requireSupabaseSession(supabase);
+        if (!isMounted) return;
+
+        const userProfile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+        navigate(getDefaultRouteForRole(userProfile?.role), { replace: true });
+      } catch {
+        clearUserSession();
+      }
+    };
+
+    redirectIfSessionIsValid();
+
+    return () => {
+      isMounted = false;
+    };
   }, [navigate]);
 
   const handleInputChange = (event) => {

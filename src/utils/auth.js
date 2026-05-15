@@ -8,6 +8,14 @@ export const ROLE_DEFAULT_ROUTES = {
 };
 
 const ROLE_PRIORITY = ['admin', 'scm_office', 'general_manager', 'pratinidhi', 'treasurer', 'auditor'];
+export const SESSION_EXPIRED_MESSAGE = 'Your session has expired. Please sign in again.';
+
+export class SessionExpiredError extends Error {
+  constructor(message = SESSION_EXPIRED_MESSAGE) {
+    super(message);
+    this.name = 'SessionExpiredError';
+  }
+}
 
 function rankRole(role) {
   const index = ROLE_PRIORITY.indexOf(role);
@@ -90,4 +98,52 @@ export function clearUserSession() {
   localStorage.removeItem('isAuthenticated');
   localStorage.removeItem('userProfile');
   localStorage.removeItem('sabha_id');
+}
+
+export function isSessionExpiredError(error) {
+  return error instanceof SessionExpiredError || error?.name === 'SessionExpiredError';
+}
+
+export function redirectToLogin(navigate, message = SESSION_EXPIRED_MESSAGE, redirectPath = window.location.pathname) {
+  clearUserSession();
+  if (redirectPath && redirectPath !== '/login' && redirectPath !== '/admin-login') {
+    localStorage.setItem('redirectPath', redirectPath);
+  }
+  navigate('/login', {
+    replace: true,
+    state: { message },
+  });
+}
+
+export async function requireSupabaseSession(supabase) {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+
+  if (error) throw error;
+
+  if (!session?.access_token) {
+    clearUserSession();
+    throw new SessionExpiredError();
+  }
+
+  return session;
+}
+
+export async function requireSupabaseUser(supabase) {
+  await requireSupabaseSession(supabase);
+
+  const { data, error } = await supabase.auth.getUser();
+  if (error) {
+    clearUserSession();
+    throw new SessionExpiredError();
+  }
+
+  if (!data?.user?.id) {
+    clearUserSession();
+    throw new SessionExpiredError();
+  }
+
+  return data.user;
 }

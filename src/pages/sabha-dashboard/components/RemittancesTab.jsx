@@ -6,6 +6,7 @@ import React, {
   useImperativeHandle,
   forwardRef
 } from "react";
+import { useNavigate } from "react-router-dom";
 import toast, { Toaster } from "react-hot-toast";
 import Input from "../../../components/ui/Input";
 import Select from "../../../components/ui/Select";
@@ -14,6 +15,11 @@ import Icon from "../../../components/AppIcon";
 import { supabase } from "../../../supabaseClient";
 import { formatCurrencyINR, formatAmountInWordsINR } from "../../../utils/amount";
 import { getRemittanceStatusBadge } from "../../../utils/remittanceStatus.jsx";
+import {
+  isSessionExpiredError,
+  redirectToLogin,
+  requireSupabaseUser
+} from "../../../utils/auth";
 
 const REMITTANCE_MODES = [
   { value: "CHEQUE", label: "Cheque" },
@@ -113,6 +119,7 @@ const openPrintWindow = (title, bodyHtml) => {
 };
 
 const RemittancesTab = forwardRef(({ selectedFY, userProfile }, ref) => {
+  const navigate = useNavigate();
   const sabhaId = userProfile?.sabhaId;
   const [remittances, setRemittances] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -332,11 +339,8 @@ const RemittancesTab = forwardRef(({ selectedFY, userProfile }, ref) => {
 
     setIsSubmitting(true);
     try {
-      const { data: userData, error: userErr } = await supabase.auth.getUser();
-      if (userErr) throw userErr;
-
-      const userId = userData?.user?.id;
-      if (!userId) throw new Error("No active session. Please login again.");
+      const user = await requireSupabaseUser(supabase);
+      const userId = user.id;
 
       const referenceValue = formData.referenceNo?.trim();
       const bankValue = formData.bankName?.trim();
@@ -370,6 +374,11 @@ const RemittancesTab = forwardRef(({ selectedFY, userProfile }, ref) => {
       toast.success("Remittance submitted for verification");
     } catch (err) {
       console.error("Failed to submit remittance", err);
+      if (isSessionExpiredError(err)) {
+        toast.error(err?.message || "Your session has expired. Please sign in again.");
+        redirectToLogin(navigate);
+        return;
+      }
       toast.error(err?.message || "Failed to submit remittance");
     } finally {
       setIsSubmitting(false);

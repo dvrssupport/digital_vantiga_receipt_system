@@ -8,6 +8,12 @@ import SabhaComparisonTab from './components/SabhaComparisonTab';
 import AllEntriesTab from './components/AllEntriesTab';
 import OfficeRemittancesTab from './components/OfficeRemittancesTab';
 import { getCurrentFinancialYear, getFinancialYearOptions } from '../../utils/financialYear';
+import {
+  isSessionExpiredError,
+  redirectToLogin,
+  requireSupabaseSession,
+} from '../../utils/auth';
+import { supabase } from '../../supabaseClient';
 
 // ✅ ADD THIS:
 import SummaryTab from './components/SummaryTab';
@@ -25,20 +31,36 @@ const ScmOfficeDashboard = () => {
   const [isAccessDenied, setIsAccessDenied] = useState(false);
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
-    if (!isAuthenticated) {
-      navigate('/login', { replace: true });
-      return;
-    }
+    const init = async () => {
+      const isAuthenticated = localStorage.getItem('isAuthenticated') === 'true';
+      if (!isAuthenticated) {
+        navigate('/login', { replace: true });
+        return;
+      }
 
-    const profile = JSON.parse(localStorage.getItem('userProfile') || '{}');
+      try {
+        await requireSupabaseSession(supabase);
+      } catch (err) {
+        if (isSessionExpiredError(err)) {
+          redirectToLogin(navigate);
+          return;
+        }
+        console.warn('Failed to validate office session:', err);
+        redirectToLogin(navigate);
+        return;
+      }
 
-    if (!OFFICE_DASHBOARD_ROLES.has(profile?.role)) {
-      setIsAccessDenied(true);
-      return;
-    }
+      const profile = JSON.parse(localStorage.getItem('userProfile') || '{}');
 
-    setUserProfile(profile);
+      if (!OFFICE_DASHBOARD_ROLES.has(profile?.role)) {
+        setIsAccessDenied(true);
+        return;
+      }
+
+      setUserProfile(profile);
+    };
+
+    init();
   }, [navigate]);
 
   const handleFYChange = (value) => {

@@ -8,16 +8,18 @@ import EntriesList from './components/EntriesList';
 import SummaryView from './components/SummaryView';
 import RemittancesTab from './components/RemittancesTab';
 import { getCurrentFinancialYear, getFinancialYearOptions } from '../../utils/financialYear';
+import {
+  isSessionExpiredError,
+  redirectToLogin,
+  requireSupabaseUser,
+} from '../../utils/auth';
 
 // ✅ adjust import path to where your client lives
 import { supabase } from '../../supabaseClient';
 
 async function getUserSabhaContextOrThrow() {
-  const { data: userData, error: userErr } = await supabase.auth.getUser();
-  if (userErr) throw userErr;
-
-  const uid = userData?.user?.id;
-  if (!uid) throw new Error('No active session. Please login again.');
+  const user = await requireSupabaseUser(supabase);
+  const uid = user.id;
 
   const { data: rows, error } = await supabase
     .from('user_sabha_roles')
@@ -106,6 +108,10 @@ const SabhaDashboard = () => {
         }
       } catch (err) {
         console.warn('Failed to load sabha role mapping:', err);
+        if (isSessionExpiredError(err)) {
+          redirectToLogin(navigate);
+          return;
+        }
       }
 
       if (!isMounted) return;
